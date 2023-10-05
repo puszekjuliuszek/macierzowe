@@ -1,0 +1,20 @@
+class Number(float):
+    ADD_counter = 0
+    SUB_counter = 0
+    MUL_counter = 0
+    DIV_counter = 0
+
+    def __init__(self, value):
+        super().__init__(value)
+    
+    def __add__(self, other):
+        super().__add__(other)
+        Number.ADD_counter += 1
+    
+a = Number(1)
+b = Number(2)
+print(a+b)
+print(Number.ADD_counter)
+
+
+
