@@ -9,19 +9,19 @@ class Number(float):
     
     def __add__(self, other):
         Number.ADD_counter += 1
-        return super().__add__(other)
+        return Number(super().__add__(other))
     
     def __sub__(self, other):
         Number.SUB_counter += 1
-        return super().__sub__(other)
+        return Number(super().__sub__(other))
     
     def __mul__ (self, other):
         Number.MUL_counter += 1
-        return super().__mul__(other)
+        return Number(super().__mul__(other))
     
     def __truediv__(self, other):
         Number.DIV_counter += 1
-        return super().__truediv__(other)
+        return Number(super().__truediv__(other))
     
     def reset_counters():
         Number.ADD_counter = 0
