@@ -7,10 +7,18 @@ class Number(float):
     def __new__(cls, value):
         return super().__new__(cls, value)
     
+    def __radd__(self, other):
+        Number.ADD_counter += 1
+        return Number(super().__radd__(other))
+
     def __add__(self, other):
         Number.ADD_counter += 1
         return Number(super().__add__(other))
     
+    def __rsub__(self, other):
+        Number.SUB_counter += 1
+        return Number(super().__rsub__(other))
+
     def __sub__(self, other):
         Number.SUB_counter += 1
         return Number(super().__sub__(other))
@@ -19,9 +27,17 @@ class Number(float):
         Number.MUL_counter += 1
         return Number(super().__mul__(other))
     
+    def __rmul__ (self, other):
+        Number.MUL_counter += 1
+        return Number(super().__rmul__(other))
+    
     def __truediv__(self, other):
         Number.DIV_counter += 1
         return Number(super().__truediv__(other))
+    
+    def __rtruediv__(self, other):
+        Number.DIV_counter += 1
+        return Number(super().__rtruediv__(other))
     
     def reset_counters():
         Number.ADD_counter = 0
