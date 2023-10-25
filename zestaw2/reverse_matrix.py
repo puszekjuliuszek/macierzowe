@@ -24,6 +24,9 @@ def reverse_matrix(A) -> np.array:
     return C
 
 if __name__ == "__main__":
-    A = np.array([[Number(2),Number(3)],[Number(1),Number(2)]], dtype=Number)
+    A = np.array([[Number(2),Number(1),Number(2),Number(4)],
+            [Number(1),Number(2),Number(4),Number(2)],
+            [Number(1),Number(2),Number(6),Number(4)],
+            [Number(1),Number(1),Number(4),Number(2)]], dtype=Number)
     print(reverse_matrix(A))
 

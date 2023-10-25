@@ -22,7 +22,14 @@ def SMU(A,B): # Strassen Matrix Multiplication
     return C
 
 if __name__ == "__main__":
-    A = np.array([[Number(5),Number(2)],[Number(1),Number(1)]], dtype=Number)
-    B = np.array([[Number(1),Number(2)],[Number(1),Number(-3)]], dtype=Number)
+    A = np.array([[Number(2),Number(1),Number(2),Number(4)],
+                [Number(1),Number(2),Number(4),Number(2)],
+                [Number(1),Number(2),Number(6),Number(4)],
+                [Number(1),Number(1),Number(4),Number(2)]], dtype=Number)
+    
+    B = np.array([[Number(2),Number(1),Number(2),Number(4)],
+                [Number(1),Number(2),Number(4),Number(2)],
+                [Number(1),Number(2),Number(6),Number(4)],
+                [Number(1),Number(1),Number(4),Number(2)]], dtype=Number)
     print(SMU(A,B))
     print(Number.ADD_counter)
