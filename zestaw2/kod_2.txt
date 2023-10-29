@@ -1,0 +1,98 @@
+import numpy as np
+from Number import Number
+from reverse_matrix import reverse_matrix
+from Strassen import SMU as mul
+
+class Number(float):
+    ADD_counter = 0
+    SUB_counter = 0
+    MUL_counter = 0
+    DIV_counter = 0
+
+    def __new__(cls, value):
+        return super().__new__(cls, value)
+
+    def __radd__(self, other):
+        Number.ADD_counter += 1
+        return Number(super().__radd__(other))
+
+    def __add__(self, other):
+        Number.ADD_counter += 1
+        return Number(super().__add__(other))
+
+    def __rsub__(self, other):
+        Number.SUB_counter += 1
+        return Number(super().__rsub__(other))
+
+    def __sub__(self, other):
+        Number.SUB_counter += 1
+        return Number(super().__sub__(other))
+
+    def __mul__ (self, other):
+        Number.MUL_counter += 1
+        return Number(super().__mul__(other))
+
+    def __rmul__ (self, other):
+        Number.MUL_counter += 1
+        return Number(super().__rmul__(other))
+
+    def __truediv__(self, other):
+        Number.DIV_counter += 1
+        return Number(super().__truediv__(other))
+
+    def __rtruediv__(self, other):
+        Number.DIV_counter += 1
+        return Number(super().__rtruediv__(other))
+
+    def reset_counters():
+        Number.ADD_counter = 0
+        Number.SUB_counter = 0
+        Number.MUL_counter = 0
+        Number.DIV_counter = 0
+
+
+def LU_factorise(A):
+    if len(A) == 1:
+        return np.array([[Number(1)]],dtype=Number), A
+    n = len(A)//2
+    A_11, A_12, A_21, A_22 = A[:n,:n], A[:n,n:], A[n:,:n],A[n:,n:]
+    L_11, U_11 = LU_factorise(A_11)
+    invU_11 = reverse_matrix(U_11)
+    L_21 = mul(A_21, invU_11)
+    invL_11 = reverse_matrix(L_11)
+    U_12 = mul(invL_11,A_12)
+    S = A_22 - mul(mul(A_21, invU_11), mul(invL_11, A_12))
+    L_22, U_22 = LU_factorise(S)
+    L, U = np.zeros((2*n,2*n), dtype=Number), np.zeros((2*n,2*n), dtype=Number)
+    L[:n,:n], L[n:,:n], L[n:,n:] = L_11, L_21, L_22
+    U[:n,:n], U[:n,n:], U[n:,n:] = U_11, U_12, U_22
+    return L, U
+
+
+def recursive_det(A):
+    L, U = LU_factorise(A)
+    return U.diagonal().prod()
+
+
+def reverse_matrix(A) -> np.array:
+    n = len(A)
+    if n == 1:
+        a = A[0][0]
+        if a != 0:
+            return np.array([[1/a]], dtype=Number)
+        else:
+            raise ValueError("Matrix is not invertilbe")
+    n//=2
+    A_11, A_12, A_21, A_22 = A[:n,:n], A[:n,n:], A[n:,:n],A[n:,n:]
+    invA_11 = reverse_matrix(A_11)
+    S = A_22 - mul(mul(A_21, invA_11),A_12)
+    invS = reverse_matrix(S)
+    C = np.zeros((2*n,2*n), dtype=Number)
+    C[:n,:n] = invA_11 + mul(mul(mul(invA_11,A_12), invS),mul(A_21, invA_11))
+    C[:n,n:] = -1 * mul(mul(invA_11,A_12), invS)
+    C[n:,:n] = -1 * mul(mul(invS,A_21), invA_11)
+    C[n:,n:] = invS
+    return C
+
+
+
