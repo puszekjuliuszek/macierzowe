@@ -9,9 +9,9 @@ def LU_factorise(A):
     n = len(A)//2
     A_11, A_12, A_21, A_22 = A[:n,:n], A[:n,n:], A[n:,:n],A[n:,n:]
     L_11, U_11 = LU_factorise(A_11)
-    invU_11 = reverse_matrix(U_11)
+    invU_11 = reverse_matrix(U_11, "U")
     L_21 = mul(A_21, invU_11)
-    invL_11 = reverse_matrix(L_11)
+    invL_11 = reverse_matrix(L_11, "L")
     U_12 = mul(invL_11,A_12)
     S = A_22 - mul(mul(A_21, invU_11), mul(invL_11, A_12))
     L_22, U_22 = LU_factorise(S)
