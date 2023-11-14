@@ -19,14 +19,16 @@ def reverse_matrix(A, traigonal = None) -> np.array:
     if traigonal != None:
         S = A_22
     else:
-        S = A_22 - mul(mul(A_21, invA_11),A_12) 
+        X = mul(A_21, invA_11)
+        S = A_22 - mul(X,A_12) 
 
     invS = reverse_matrix(S)
     C = np.zeros((2*n,2*n), dtype=Number)
     if traigonal == None:
-        C[:n,:n] = invA_11 + mul(mul(mul(invA_11,A_12), invS),mul(A_21, invA_11))
-        C[:n,n:] = -1 * mul(mul(invA_11,A_12), invS)
-        C[n:,:n] = -1 * mul(mul(invS,A_21), invA_11)
+        Y = mul(invA_11,A_12)
+        C[:n,:n] = invA_11 + mul(mul(Y, invS),X)
+        C[:n,n:] = -1 * mul(Y, invS)
+        C[n:,:n] = -1 * mul(invS,X)
     else:
         C[:n,:n] = invA_11
         if traigonal == "L":
@@ -34,7 +36,7 @@ def reverse_matrix(A, traigonal = None) -> np.array:
         else:
             C[:n,n:] = -1 * mul(mul(invA_11,A_12), invS)
         
-    
+    np.allclose
     C[n:,n:] = invS
     return C
 

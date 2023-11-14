@@ -12,8 +12,8 @@ def LU_factorise(A):
     invU_11 = reverse_matrix(U_11, "U")
     L_21 = mul(A_21, invU_11)
     invL_11 = reverse_matrix(L_11, "L")
-    U_12 = mul(invL_11,A_12)
-    S = A_22 - mul(mul(A_21, invU_11), mul(invL_11, A_12))
+    U_12 = mul(invL_11, A_12)
+    S = A_22 - mul(L_21, U_12)
     L_22, U_22 = LU_factorise(S)
     L, U = np.zeros((2*n,2*n), dtype=Number), np.zeros((2*n,2*n), dtype=Number)
     L[:n,:n], L[n:,:n], L[n:,n:] = L_11, L_21, L_22
