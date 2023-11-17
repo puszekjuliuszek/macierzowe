@@ -1,3 +1,4 @@
+import numpy as np
 class Number(float):
     ADD_counter = 0
     SUB_counter = 0
@@ -44,7 +45,17 @@ class Number(float):
         Number.SUB_counter = 0
         Number.MUL_counter = 0
         Number.DIV_counter = 0
-    
+
+
+def gen_mat_of_size_2_power_k(k: int, datatype_number=True) -> np.ndarray:
+    if datatype_number == True:
+        return np.array(
+            [[Number(j) for j in i] for i in np.random.uniform(low=10 ** (-8), high=1, size=(2 ** k, 2 ** k))],
+            dtype=Number)
+    else:
+        return np.array([[j for j in i] for i in np.random.uniform(low=10 ** (-8), high=1, size=(2 ** k, 2 ** k))])
+
+
 if __name__ == "__main__":
     a = Number(1)
     b = Number(2)
