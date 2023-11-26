@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
 
-def draw_tree(root):
+
+def draw_tree(root, title=''):
     image = np.ones(root.matrix.shape)*255
 
     Q = deque()
@@ -26,4 +27,5 @@ def draw_tree(root):
 
 
     plt.imshow(image,cmap = "gray", vmin=0, vmax=255)
+    plt.title(title)
     plt.show()
