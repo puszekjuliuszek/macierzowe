@@ -28,10 +28,10 @@ class CompressTree:
 
     def create_tree(self, r, epsylon):
         
-        U, Sigma, V = randomized_svd(self.matrix[self.row_min:self.row_max, self.col_min: self.col_max], n_components=r+1)
+        U, Sigma, V = randomized_svd(self.matrix[self.row_min:self.row_max, self.col_min: self.col_max], n_components=r)
         if self.row_max == self.row_min + r:
             self.make_leaf(U, Sigma, V)
-        elif Sigma[r] < epsylon:
+        elif Sigma[r-1] < epsylon:
             self.make_leaf(U, Sigma, V)
         else:
             rows = [self.row_min, (self.row_min + self.row_max)//2, self.row_max]
