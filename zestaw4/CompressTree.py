@@ -29,7 +29,7 @@ class CompressTree:
     def create_tree(self, r, epsylon):
         
         U, Sigma, V = randomized_svd(self.matrix[self.row_min:self.row_max, self.col_min: self.col_max], n_components=r)
-        if self.row_max == self.row_min + r:
+        if self.row_max <= self.row_min + 2*r + 1:
             self.make_leaf(U, Sigma, V)
         elif Sigma[r-1] <= epsylon:
             self.make_leaf(U, Sigma, V)
@@ -55,6 +55,19 @@ class CompressTree:
     def compare(self, new_matrix):
         return np.sum(np.square(self.matrix - new_matrix))
 
+    def compute_compression(self):
+        if self.leaf:
+            x = self.row_max - self.row_min
+            y = self.col_max - self.col_min
+            n = len(self.s)
+            area = 2*n*len(self.u)+n
+            return area / (x * y)
+        suma = 0
+        for v in self.childs:
+            for child in v:
+                suma += child.compute_compression()
+        return suma/4
+            
 if __name__ == "__main__":
     X = np.random.random((64,64))
     P = np.random.random((64,64))
@@ -67,4 +80,5 @@ if __name__ == "__main__":
     U, Sigma, V = svd(X)
     Sigma
     root.create_tree(1, Sigma[len(Sigma)-1])
+    print(root.compute_compression())
 
