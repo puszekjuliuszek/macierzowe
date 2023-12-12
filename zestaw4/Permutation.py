@@ -49,7 +49,7 @@ def cuthill_mckee(matrix):
     permutation = []
     Visited = [False for i in range(n)]
     sorted_nodes = sorted([x for x in G.degree()], key = lambda x : x[1])
-    print(sorted_nodes)
+    # print(sorted_nodes)
     sorted_nodes = list(map(lambda x : x[0], sorted_nodes))
     Q = deque()
     for s in sorted_nodes:

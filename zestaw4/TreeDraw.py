@@ -29,4 +29,5 @@ def draw_tree(root, title=''):
     plt.axis('off')
     plt.imshow(image,cmap = "gray", vmin=0, vmax=255)
     plt.title(title)
+    # plt.figure(figsize=(10,6))
     plt.show()
