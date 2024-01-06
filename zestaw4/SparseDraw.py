@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from zestaw4.MatrixGenerator import generate_3d_matrix
+from MatrixGenerator import generate_3d_matrix
 
 
 def sparse_draw(matrix, title = ''):
