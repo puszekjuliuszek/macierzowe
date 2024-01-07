@@ -43,9 +43,7 @@ class CompressTree:
 
     def decompress(self, dest_matrix):
         if self.leaf:
-            r = len(self.s)
-            sigma = np.zeros((r,r))
-            np.fill_diagonal(sigma, self.s)
+            sigma = np.diag(self.s)
             dest_matrix[self.row_min:self.row_max, self.col_min: self.col_max] = self.u @ sigma @ self.v
         
         else:
