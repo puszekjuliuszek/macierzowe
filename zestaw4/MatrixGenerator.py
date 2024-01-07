@@ -1,13 +1,5 @@
 import numpy as np
 
-def _stamp(P, jump, b):
-    n = len(P)
-
-    for i in range(jump, n):
-        P[i][i - jump] = 1
-    for i in range(n-jump):
-        P[i][i+jump] = 1
-
 def generate_3d_matrix(k):
     n = 2**(k*3)
     X = np.random.random((n, n))
@@ -34,7 +26,6 @@ def generate_3d_matrix(k):
                 if c < 2**k - 1:
                     v[A + B + c + 1] = 1
                 
-    print(np.sum(P))
     return X * P
 
 
