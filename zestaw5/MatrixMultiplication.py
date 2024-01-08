@@ -41,38 +41,33 @@ def _rSVD(A, B, d):
     return U @ np.diag(S), V
 
 def _add_compmatrix(u1, v1, u2, v2):
-    A = np.append(u1, u2, axis = 1)
-    B = np.append(v1, v2, axis=0)
-    # print(u1.shape, u2.shape, v1.shape, v2.shape)
-    # print(A.shape, B.shape)
-    
+    A = np.append(u1, u2, axis = 1) 
+    B = np.append(v1, v2, axis = 0)
+
     U,V =  _rSVD(A, B, u1.shape[1])
-    # print(U.shape, V.shape)
-    # print()
     return U,V
 
 def _mul_compmatrix(u1, v1, u2, v2):
     temp = v1 @ u2
     U = u1 @ temp
-    return U, v2
+    return U.reshape(u1.shape), v2
 
 def _add_rekur(node1 : CompressTree, node2 : CompressTree) ->  CompressTree:
     result_node = CompressTree(None, None, None, None, None)
     
     if node1.leaf and node2.leaf:
         r = node1.u.shape[1]
-        U, V = _add_compmatrix(node1.u  @ np.diag(node1.s), node1.v, node2.u @ np.diag(node2.s), node2.v)
+        U, V = _add_compmatrix(node1.u  @ np.diag(node1.s).reshape(r,r), node1.v, node2.u @ np.diag(node2.s).reshape(r,r), node2.v)
         result_node.make_leaf(U, np.ones((r,)), V)
         return result_node
     
     elif node1.leaf or node2.leaf:
         node = node1 if node1.leaf else node2
 
-        n = node.row_max - node.row_min
-        r = node.u.shape[1]
+        n, r = node.u.shape
         
         u_part = [node.u[:n//2], node.u[n//2:]]
-        v_part = [node.v[:n//2], node.v[n//2:]]
+        v_part = [node.v[:,:n//2], node.v[:,n//2:]]
         
         for i in range(2):
             for j in range(2):
@@ -124,23 +119,22 @@ def _mul_rekur(node1 : CompressTree, node2 : CompressTree) ->  CompressTree:
     if node1.leaf and node2.leaf:
         r = node1.u.shape[1]
         U, V = _mul_compmatrix(node1.u @ np.diag(node1.s), node1.v, node2.u @ np.diag(node2.s), node2.v)
-        result_node.make_leaf(U, np.ones((1, r)), V)
+        result_node.make_leaf(U, np.ones((r,)), V)
 
     elif node1.leaf or node2.leaf:
         
         node = node1 if node1.leaf else node2
 
-        n = node.row_max - node.row_min
-        r = node.u.shape[1]
+        n, r = node.u.shape
         
         u_part = [node.u[:n//2], node.u[n//2:]]
-        v_part = [node.v[:n//2], node.v[n//2:]]
+        v_part = [node.v[:,:n//2], node.v[:,n//2:]]
 
         fake_childs = [[None for _ in range(2)] for _ in range(2)]
         for i in range(2):
             for j in range(2):
                 fake_childs[i][j] = CompressTree(None, None, None, None, None)
-                fake_childs[i][j].make_leaf(u_part[i], np.ones((1, r)), v_part[j])
+                fake_childs[i][j].make_leaf(u_part[i], np.ones((r,)), v_part[j])
 
         for i in range(2):
             for j in range(2):
@@ -151,7 +145,7 @@ def _mul_rekur(node1 : CompressTree, node2 : CompressTree) ->  CompressTree:
                     first = _mul_rekur(node1.childs[i][0], fake_childs[0][j])
                     second = _mul_rekur(node1.childs[i][1], fake_childs[1][j])
 
-                child = add_compmatrix(first, second)
+                child = _add_rekur(first, second)
                 result_node.childs[i][j] = child
 
     else:
@@ -160,7 +154,7 @@ def _mul_rekur(node1 : CompressTree, node2 : CompressTree) ->  CompressTree:
                 first = _mul_rekur(node1.childs[i][0], node2.childs[0][j])
                 second = _mul_rekur(node1.childs[i][1], node2.childs[1][j])
 
-                child = add_compmatrix(first, second)
+                child = _add_rekur(first, second)
                 result_node.childs[i][j] = child
     return result_node
 
@@ -183,8 +177,8 @@ if __name__ == '__main__':
         P = (P > d).astype(int)
         return X * P
 
-    n = 8
-    M = gen_matrix(n, 0.8)
+    n = 64
+    M = gen_matrix(n, 0.9)
     # M = np.array([[ 0,0,2,0],
     #     [ 0,0,0,0],
     #     [ 8,0,10,11],
@@ -194,7 +188,7 @@ if __name__ == '__main__':
     root = CompressTree(M, 0, len(M), 0, len(M[0]))
     vector = np.array([[j] for j in range(n)])
     U, Sigma, V = svd(M)
-    root.create_tree(1, Sigma[-1])
+    root.create_tree(2, Sigma[-1])
 
     # print(sum(compmatrix_mul_vector(root , vector) - M @ vector))
     result = mul_compmatrix(root, root)
