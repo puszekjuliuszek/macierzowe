@@ -9,6 +9,9 @@ You can just clone this repo and run the notebooks and they will collect data an
 <ol>
 <li> <a href="https://github.com/puszekjuliuszek/macierzowe/tree/main/zestaw1"> matrix multiplication algorithms </a></li>
 <li><a href="https://github.com/puszekjuliuszek/macierzowe/tree/main/zestaw2"> matrix inverse, LU factorisation and det </a></li>
+  <li><a href="https://github.com/puszekjuliuszek/macierzowe/tree/main/zestaw3"> Sparse Matrix Compression using Singular Values Decomposition </a></li>
+  <li><a href="https://github.com/puszekjuliuszek/macierzowe/tree/main/zestaw4"> Boosting compression using permutation algorithms - Minimal Degree permutation and Cuthill & McKee</a></li>
+  <li><a href="https://github.com/puszekjuliuszek/macierzowe/tree/main/zestaw5"> Multiplication of compressed matrixes </a></li>
 </ol>
 
 ## Licence 
