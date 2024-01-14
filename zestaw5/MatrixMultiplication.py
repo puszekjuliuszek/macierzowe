@@ -30,8 +30,6 @@ def _rSVD(A, B, d):
     Qa, Ra = np.linalg.qr(A)
     Qb, Rb = np.linalg.qr(B)
     U_prim, Sigma, V_prim = randomized_svd(Ra @ Rb, n_components=d)#svd(Ra @ Rb.T)
-    print(f'    Qa {Qa.shape} Ra {Ra.shape} Qb {Qb.shape} Rb {Rb.shape}')
-    print(f'   ', U_prim.shape, V_prim.shape)
     U = Qa @ U_prim @ np.diag(Sigma)
     V = V_prim @ Qb
     return U, V
