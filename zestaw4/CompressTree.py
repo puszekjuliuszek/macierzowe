@@ -61,15 +61,13 @@ class CompressTree:
             y = self.col_max - self.col_min
             n = len(self.s)
             area = 2*n*len(self.u)+n
-            return area, (x * y)
+            return area
         suma = 0
-        sumaxy = 0
         for v in self.childs:
             for child in v:
-                area, xy = child.compute_compression()
+                area = child.compute_compression()
                 suma += area
-                sumaxy += xy
-        return suma, sumaxy
+        return suma
             
 if __name__ == "__main__":
     X = np.random.random((64,64))
