@@ -1,0 +1,379 @@
+#--------- CompressTree
+
+class CompressTree:
+    def __init__(self,matrix, row_min, row_max, col_min, col_max):
+        self.matrix = matrix
+        self.row_min = row_min
+        self.row_max = row_max
+        self.col_min = col_min
+        self.col_max = col_max
+
+
+        self.leaf = False
+        '''
+         UL | UR
+        ----+----
+         DL | DR
+    
+        '''
+        self.childs = [[None, None], [None, None]]
+
+    def make_leaf(self, U, Sigma, V):
+            self.leaf = True
+            self.u = U
+            self.s = Sigma
+            self.v = V
+
+    def create_tree(self, r, epsylon):
+        
+        U, Sigma, V = randomized_svd(self.matrix[self.row_min:self.row_max, self.col_min: self.col_max], n_components=r)
+        if self.row_max <= self.row_min + 2*r:
+            self.make_leaf(U, Sigma, V)
+        elif Sigma[r-1] <= epsylon:
+            self.make_leaf(U, Sigma, V)
+        else:
+            rows = [self.row_min, (self.row_min + self.row_max)//2, self.row_max]
+            cols = [self.col_min, (self.col_min + self.col_max)//2, self.col_max]
+            for i in range(2):
+                for j in range(2):
+                    self.childs[i][j] = CompressTree(self.matrix, rows[i], rows[i+1], cols[j], cols[j+1])
+                    self.childs[i][j].create_tree(r, epsylon)
+
+    def decompress(self, dest_matrix):
+        if self.leaf:
+            sigma = np.diag(self.s)
+            dest_matrix[self.row_min:self.row_max, self.col_min: self.col_max] = self.u @ sigma @ self.v
+        
+        else:
+            for i in range(2):
+                for j in range(2):
+                    self.childs[i][j].decompress(dest_matrix)
+
+    def compare(self, new_matrix):
+        return np.sum(np.square(self.matrix - new_matrix))
+
+    def compute_compression(self):
+        if self.leaf:
+            x = self.row_max - self.row_min
+            y = self.col_max - self.col_min
+            n = len(self.s)
+            area = 2*n*len(self.u)+n
+            return area, (x * y)
+        suma = 0
+        sumaxy = 0
+        for v in self.childs:
+            for child in v:
+                area, xy = child.compute_compression()
+                suma += area
+                sumaxy += xy
+        return suma, sumaxy
+
+# ------- MatrixGenerator
+
+def generate_3d_matrix(k):
+    n = 2**(k*3)
+    X = np.random.random((n, n))
+    P = np.zeros_like(X)
+    big_jump = 2**(2*k)
+    small_jump = 2**k
+    jumps = [0] + [2**(i*k) for i in range(3)]
+    for a in range(2**k):
+        A = big_jump * a
+        for b in range(2**k):
+            B = small_jump * b
+            for c in range(2**k):
+                v = P[A + B + c]
+                if a > 0:
+                    v[A + B + c - big_jump] = 1
+                if a < 2**k - 1:
+                    v[A + B + c + big_jump] = 1
+                if b > 0:
+                    v[A + B + c - small_jump] = 1
+                if b < 2**k - 1:
+                    v[A + B + c + small_jump] = 1
+                if c > 0:
+                    v[A + B + c - 1] = 1
+                if c < 2**k - 1:
+                    v[A + B + c + 1] = 1
+                
+    return X * P
+
+# ------ MatrixMultiplication
+
+def _matxvec_rekur(node : CompressTree, vector : np.array):
+    if node.leaf:
+        a = node.v @ vector
+        b = node.u @ a 
+        c = b * node.s[0]
+        return (node.u @ (node.v @ vector)) * node.s[0]
+    else:
+        n = len(vector)
+        upper, lower = vector[:n//2], vector[n//2:]
+        out_upper = _matxvec_rekur(node.childs[0][0], upper) + _matxvec_rekur(node.childs[0][1], lower)
+        out_lower = _matxvec_rekur(node.childs[1][0], upper) + _matxvec_rekur(node.childs[1][1], lower)
+        return np.append(out_upper, out_lower, axis=0)
+
+
+def compmatrix_mul_vector(root : CompressTree, vector : np.array):
+    if vector.shape[0] == 1 and vector.shape[1] > 1:
+        vector = vector.T
+    if vector.shape[1] != 1 and vector.shape[0] != root.col_max - root.col_min:
+        raise ValueError('wrong vector')
+    
+    return _matxvec_rekur(root, vector)
+
+def _rSVD(A, B, d):
+    Qa, Ra = np.linalg.qr(A)
+    Qb, Rb = np.linalg.qr(B)
+    U_prim, Sigma, V_prim = randomized_svd(Ra @ Rb, n_components=d)#svd(Ra @ Rb.T)
+    U = Qa @ U_prim @ np.diag(Sigma)
+    V = V_prim @ Qb
+    return U, V
+
+def _rSVD(A, B, d):
+    U, S, V = randomized_svd(A @ B, n_components=d)
+    return U @ np.diag(S), V
+
+def _add_compmatrix(u1, v1, u2, v2):
+    A = np.append(u1, u2, axis = 1) 
+    B = np.append(v1, v2, axis = 0)
+
+    U,V =  _rSVD(A, B, u1.shape[1])
+    return U,V
+
+def _mul_compmatrix(u1, v1, u2, v2):
+    temp = v1 @ u2
+    U = u1 @ temp
+    return U.reshape(u1.shape), v2
+
+def _add_rekur(node1 : CompressTree, node2 : CompressTree) ->  CompressTree:
+    result_node = CompressTree(None, None, None, None, None)
+    
+    if node1.leaf and node2.leaf:
+        r = node1.u.shape[1]
+        U, V = _add_compmatrix(node1.u  @ np.diag(node1.s).reshape(r,r), node1.v, node2.u @ np.diag(node2.s).reshape(r,r), node2.v)
+        result_node.make_leaf(U, np.ones((r,)), V)
+        return result_node
+    
+    elif node1.leaf or node2.leaf:
+        node = node1 if node1.leaf else node2
+
+        n, r = node.u.shape
+        
+        u_part = [node.u[:n//2], node.u[n//2:]]
+        v_part = [node.v[:,:n//2], node.v[:,n//2:]]
+        
+        for i in range(2):
+            for j in range(2):
+                fake_child = CompressTree(None, None, None, None, None)
+                fake_child.make_leaf(u_part[i], np.ones((r,)), v_part[j])
+                if node1.leaf:
+                    result_node.childs[i][j] = _add_rekur(fake_child, node2.childs[i][j])
+                else:
+                    result_node.childs[i][j] = _add_rekur(node1.childs[i][j], fake_child)
+    
+    else:
+        for i in range(2):
+            for j in range(2):
+                result_node.childs[i][j] = _add_rekur(node1.childs[i][j], node2.childs[i][j])
+        
+    return result_node
+
+def _normalize_root(root, root1):
+    n = root1.matrix.shape[0]
+    root.row_min = 0
+    root.row_max = n
+    root.col_min = 0
+    root.col_max = n
+    M = np.zeros((n,n))
+    Q = deque()
+    Q.append(root)
+    while Q:
+        node : CompressTree = Q.popleft()
+        node.matrix = M
+        rows = [node.row_min, (node.row_min + node.row_max)//2, node.row_max]
+        cols = [node.col_min, (node.col_min + node.col_max)//2, node.col_max]
+        for i in range(2):
+            for j in range(2):
+                if not node.leaf:
+                    node.childs[i][j].row_min = rows[i]
+                    node.childs[i][j].row_max = rows[i+1]
+                    node.childs[i][j].col_min = cols[j]
+                    node.childs[i][j].col_max = cols[j+1]
+                    Q.append(node.childs[i][j])
+    root.decompress(M)
+
+def add_compmatrix(root1 : CompressTree, root2 : CompressTree):
+    result = _add_rekur(root1, root2)
+    _normalize_root(result, root1)
+    return result
+
+def _mul_rekur(node1 : CompressTree, node2 : CompressTree) ->  CompressTree:
+    result_node = CompressTree(None, None, None, None, None)
+    if node1.leaf and node2.leaf:
+        r = node1.u.shape[1]
+        U, V = _mul_compmatrix(node1.u @ np.diag(node1.s), node1.v, node2.u @ np.diag(node2.s), node2.v)
+        result_node.make_leaf(U, np.ones((r,)), V)
+
+    elif node1.leaf or node2.leaf:
+        
+        node = node1 if node1.leaf else node2
+
+        n, r = node.u.shape
+        
+        u_part = [node.u[:n//2], node.u[n//2:]]
+        v_part = [node.v[:,:n//2], node.v[:,n//2:]]
+
+        fake_childs = [[None for _ in range(2)] for _ in range(2)]
+        for i in range(2):
+            for j in range(2):
+                fake_childs[i][j] = CompressTree(None, None, None, None, None)
+                fake_childs[i][j].make_leaf(u_part[i], np.ones((r,)), v_part[j])
+
+        for i in range(2):
+            for j in range(2):
+                if node1.leaf:
+                    first = _mul_rekur(fake_childs[i][0], node2.childs[0][j])
+                    second = _mul_rekur(fake_childs[i][1], node2.childs[1][j])
+                else:
+                    first = _mul_rekur(node1.childs[i][0], fake_childs[0][j])
+                    second = _mul_rekur(node1.childs[i][1], fake_childs[1][j])
+
+                child = _add_rekur(first, second)
+                result_node.childs[i][j] = child
+
+    else:
+        for i in range(2):
+            for j in range(2):
+                first = _mul_rekur(node1.childs[i][0], node2.childs[0][j])
+                second = _mul_rekur(node1.childs[i][1], node2.childs[1][j])
+
+                child = _add_rekur(first, second)
+                result_node.childs[i][j] = child
+    return result_node
+
+
+
+def mul_compmatrix(root1 : CompressTree, root2 : CompressTree):
+
+    result = _mul_rekur(root1, root2)
+    _normalize_root(result, root1)
+    return result
+
+# ------- SparseDraw
+
+def sparse_draw(matrix, title = ''):
+    image = (matrix == 0)
+    image = image.astype(int)  *255
+    fig = plt.figure()
+    n = len(matrix)//50
+    fig.set_size_inches((n,n))
+    plt.imshow(image,cmap = "gray", vmin=0, vmax=255)
+    plt.title(title)
+    plt.axis('off')
+    # plt.figure(figsize=(10, 6))
+    plt.show()
+
+# ------ TreeDraw
+
+def draw_tree(root, title=''):
+    image = np.ones(root.matrix.shape)*255
+
+    Q = deque()
+    Q.append(root)
+    while Q:
+        v = Q.pop()
+        if v.leaf:
+            r = len(v.s)
+            gray = 125
+            image[v.row_min:v.row_max, v.col_min:v.col_min+r] = gray*np.ones((v.row_max - v.row_min, r))#np.zeros((v.row_max - v.row_min, min(r,v.col_max - v.col_min )))
+            image[v.row_min:v.row_min + r, v.col_min:v.col_max] =gray*np.ones((r , v.col_max - v.col_min)) #np.zeros((min(r,v.row_max - v.row_min) , v.col_max - v.col_min))
+            image[v.row_min, v.col_min:v.col_max] = np.zeros((1,v.col_max - v.col_min))
+            image[v.row_max-1, v.col_min:v.col_max] = np.zeros((1,v.col_max - v.col_min))
+            image[v.row_min:v.row_max,v.col_min] = np.zeros(v.row_max-v.row_min)
+            image[v.row_min:v.row_max,v.col_max-1] = np.zeros(v.row_max-v.row_min)
+        else:
+            for i in range(2):
+                for j in range(2):
+                    Q.append(v.childs[i][j])
+    n = (root.row_max - root.row_min)//50   
+    fig = plt.figure()
+    fig.set_size_inches((n,n))
+    plt.axis('off')
+    plt.imshow(image,cmap = "gray", vmin=0, vmax=255)
+    plt.title(title)
+    plt.show()
+
+# - test porównawnczy
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from copy import deepcopy
+from CompressTree import CompressTree
+from numpy.linalg import svd
+from TreeDraw import draw_tree
+from MatrixGenerator import generate_3d_matrix
+from MatrixMultiplication import compmatrix_mul_vector, mul_compmatrix
+from  timeit import default_timer as timer
+
+
+def measure_algorithm():
+    results = []
+    for k in range(2, 5):
+        X = generate_3d_matrix(k)
+        X_cpy = deepcopy(X)
+        U, Sigma, V = svd(X_cpy)
+        for s in [len(Sigma)//2]:
+            root = CompressTree(X_cpy, 0, len(X_cpy), 0, len(X_cpy[0]))
+            root.create_tree(2, Sigma[s])
+            draw_tree(root, f'macierz po kompresji\n dla sigmy {s} k {k}')
+
+            # czas
+            st = timer()
+            result = mul_compmatrix(root, root)
+            end = timer()
+
+            #błąd
+            N = np.zeros_like(X)
+            result.decompress(N)
+            result_true = np.array(X_cpy)@np.array(X_cpy)
+            err = np.sum(np.square(N - result_true))
+            results.append([k, s, end-st, err])
+            print([k, s, end-st, err])
+    df = pd.DataFrame(results, columns=["k", "s", "time", "error"])
+    return df
+
+
+from math import sqrt
+from scipy.optimize import curve_fit
+
+def fit_curve(name1, name2, dataframe):
+    x_data = dataframe[name1]
+    y_data = dataframe[name2]
+    def power_law(x, a, k):
+        return a*x**k
+
+    params, covariance = curve_fit(power_law, x_data, y_data, p0=[1.0, 1.0])
+    a, k = params
+    print(f"Exponent k is approximately: {k}")
+    print(f"contant a is approximately: {a}")
+    return a, k
+
+def plot_with_fit(a, k, data_frame, name1, name2, name):
+    powers = data_frame[name1]
+    time = data_frame[name2]
+
+    time_spprox = [a * i ** k for i in powers]
+    plt.plot(powers, time, ".", label = f"czas mnożenia", color="black", )
+    plt.plot(powers, time_spprox, ".", label = f"krzywa dopasowana do czasu mnożenia", color="red")
+    plt.xlabel("n")
+    plt.ylabel("czas")
+    plt.legend()
+    plt.semilogy()
+    plt.show()
+
+a, k = fit_curve("k", "time", df)
+plot_with_fit(a, k , df, "k", "time", "Bineta")
+a, k = fit_curve("k", "time", df_vect)
+plot_with_fit(a, k , df_vect, "k", "time", "Bineta")
